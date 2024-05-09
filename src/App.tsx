@@ -30,11 +30,47 @@ const playReadySound = (onPlayEnd: () => void) => {
 
 function App() {
   const [play, { pause }] = useSound(chips, { loop: true });
+  const lastTimeoutRef = useRef<Date | null>(null);
+  const tryPlay = useCallback(async () => {
+    const control = new AbortController();
+
+    const ms = 900;
+    const waitAndAbort = new Promise((resolve) =>
+      setTimeout(() => {
+        control.abort("timeout");
+        lastTimeoutRef.current = new Date();
+        resolve(false);
+      }, ms)
+    );
+
+    const tryLockInner = navigator.locks.request(
+      "audio",
+      {
+        signal: control.signal,
+      },
+      async () => {
+        console.log("play");
+        play();
+        await new Promise((resolve) =>
+          setTimeout(() => {
+            const lastTimeout = lastTimeoutRef.current;
+            if (
+              lastTimeout &&
+              new Date().getMilliseconds() - lastTimeout.getMilliseconds() <
+                1000
+            )
+              pause();
+            resolve(null);
+          }, 2000)
+        );
+      }
+    );
+    return await Promise.race([waitAndAbort, tryLockInner]);
+  }, [play, lastTimeoutRef]);
   const [enabled, setEnabled] = useState(false);
-  const playingRef = useRef(false);
   const onArrive = useCallback(
     (buffer: Uint8Array, length: number) => {
-      const maxFreqIndex = buffer?.reduce<[number, number]>(
+      const maxFreqIndex = buffer.reduce<[number, number]>(
         (prevPair, curAmp, curFreq) => {
           const [prevAmp, prevFreq] = prevPair;
           if (prevAmp < curAmp) {
@@ -45,37 +81,15 @@ function App() {
         },
         [-1, -1] as const
       )[1];
-      if (
-        !playingRef.current &&
-        maxFreqIndex &&
-        maxFreqIndex > (length * 2) / 3
-      ) {
-        console.log({ maxFreqIndex, length });
-        if (playingRef.current) return;
-        const sleep = (ms: number) =>
-          new Promise((resolve) => setTimeout(() => resolve(null), ms));
-        const control = new AbortController();
-        const sleepAndAbort = async () => {
-          await sleep(100);
-          control.abort();
-        };
-        const tryLock = navigator.locks.request("audio", async (lock) => {
-          if (control.signal.aborted) {
-            console.log("already aborted");
-            return;
-          }
-          play();
-          await sleep(200);
-          console.log("pause");
-          pause();
-          playingRef.current = false;
-        });
-        Promise.race([sleepAndAbort, tryLock]);
+      const flag = maxFreqIndex > (length * 2) / 3;
+      if (flag) {
+        tryPlay();
       }
     },
-    [play, pause, playingRef]
+    [tryPlay, pause]
   );
   useFFTMic(onArrive, enabled);
+
   const onEnabled = useCallback(() => {
     playReadySound(() => setEnabled((s) => !s));
   }, [setEnabled]);
@@ -87,10 +101,10 @@ function App() {
 
         <Box mt="8">
           <FormControl display="flex" alignItems="center">
-            <FormLabel mb="0">Enable System ?</FormLabel>
+            <FormLabel mb="0">Enable System By Click Here: </FormLabel>
             <Switch onChange={onEnabled} />
           </FormControl>
-          <HStack gap="32">
+          <HStack gap="32" mt="4">
             <Button colorScheme="yellow" size="lg" onClick={() => play()}>
               Play
             </Button>
