@@ -66,7 +66,7 @@ function App() {
       }
     );
     return await Promise.race([waitAndAbort, tryLockInner]);
-  }, [play, lastTimeoutRef]);
+  }, [play, pause, lastTimeoutRef]);
   const [enabled, setEnabled] = useState(false);
   const onArrive = useCallback(
     (buffer: Uint8Array, length: number) => {
@@ -86,7 +86,7 @@ function App() {
         tryPlay();
       }
     },
-    [tryPlay, pause]
+    [tryPlay]
   );
   useFFTMic(onArrive, enabled);
 
