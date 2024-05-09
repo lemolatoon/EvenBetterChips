@@ -1,7 +1,14 @@
-import { Heading } from "@chakra-ui/react";
+import { VStack } from "@chakra-ui/react";
+import { Header } from "./components/header";
 
 function App() {
-  return <Heading as="h1">EvenBetterChips</Heading>;
+  return (
+    <>
+      <VStack>
+        <Header />
+      </VStack>
+    </>
+  );
 }
 
 export default App;
