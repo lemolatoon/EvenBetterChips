@@ -1,0 +1,31 @@
+name: Cloudflare Pages
+
+on: [push]
+
+jobs:
+  publish:
+    runs-on: ubuntu-20.04
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - uses: volta-cli/action@v4
+
+      - name: Install Deps
+        run: npm install
+
+      - name: Build
+        run: |
+          npm run build
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@1
+        with:
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          projectName: even-better-chips
+          directory: ./dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

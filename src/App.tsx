@@ -1,11 +1,11 @@
 import {
   Box,
   Button,
-  FormControl,
   FormLabel,
   HStack,
   Switch,
   VStack,
+  Text,
 } from "@chakra-ui/react";
 import { Header } from "./components/header";
 import chips from "/chips.mp3";
@@ -30,6 +30,7 @@ const playReadySound = (onPlayEnd: () => void) => {
 
 function App() {
   const [play, { pause }] = useSound(chips, { loop: true });
+  const [eating, setEating] = useState(false);
   const lastTimeoutRef = useRef<Date | null>(null);
   const tryPlay = useCallback(async () => {
     const control = new AbortController();
@@ -50,6 +51,7 @@ function App() {
       },
       async () => {
         console.log("play");
+        setEating(true);
         play();
         await new Promise((resolve) =>
           setTimeout(() => {
@@ -58,15 +60,17 @@ function App() {
               lastTimeout &&
               new Date().getMilliseconds() - lastTimeout.getMilliseconds() <
                 1000
-            )
+            ) {
+              setEating(false);
               pause();
+            }
             resolve(null);
           }, 2000)
         );
       }
     );
     return await Promise.race([waitAndAbort, tryLockInner]);
-  }, [play, lastTimeoutRef]);
+  }, [play, pause, setEating, lastTimeoutRef]);
   const [enabled, setEnabled] = useState(false);
   const onArrive = useCallback(
     (buffer: Uint8Array, length: number) => {
@@ -86,7 +90,7 @@ function App() {
         tryPlay();
       }
     },
-    [tryPlay, pause]
+    [tryPlay]
   );
   useFFTMic(onArrive, enabled);
 
@@ -99,12 +103,12 @@ function App() {
       <VStack>
         <Header />
 
+        <Box mt="4" display="flex" alignItems="center">
+          <FormLabel mb="0">Enable System By Click Here: </FormLabel>
+          <Switch onChange={onEnabled} />
+        </Box>
         <Box mt="8">
-          <FormControl display="flex" alignItems="center">
-            <FormLabel mb="0">Enable System By Click Here: </FormLabel>
-            <Switch onChange={onEnabled} />
-          </FormControl>
-          <HStack gap="32" mt="4">
+          <HStack gap="32">
             <Button colorScheme="yellow" size="lg" onClick={() => play()}>
               Play
             </Button>
@@ -112,6 +116,11 @@ function App() {
               Stop
             </Button>
           </HStack>
+        </Box>
+        <Box mt="4">
+          <Text fontSize="x-large" fontWeight="bold">
+            Status: {eating ? "Eating Chips" : "Not Eating"}
+          </Text>
         </Box>
       </VStack>
     </>
