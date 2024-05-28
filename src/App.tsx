@@ -26,14 +26,16 @@ function App() {
 
   return (
     <>
-      <VStack>
+      <VStack height="100vh">
         <Header />
 
         <Box mt="4" display="flex" alignItems="center">
           <FormLabel mb="0">Enable System By Click Here: </FormLabel>
           <Switch onChange={onEnabled} />
         </Box>
-        <MusicGimmick enabled={enabled} />
+        <Box flexGrow={1}>
+          <MusicGimmick enabled={enabled} />
+        </Box>
       </VStack>
     </>
   );
